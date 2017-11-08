@@ -5,8 +5,13 @@ import glob, os
 os.chdir("../data/training")
 
 ######### Details #################
-## matrix key to use: 'ecg'
-## 12 parts
+## 1. in the parent directory of where you cloned the repository
+## 2. create a folder named 'data'.
+## 3. inside data create a folder named 'training'
+## 4. into training, paste the patient matrices ONLY
+## 5. RUN merge_data (creates x.pkl)
+## 6. paste target variable into training as y.xlsx
+
 names = []
 for file in glob.glob("*.mat"):
     print(file[16:-4])
@@ -34,9 +39,3 @@ os.chdir('../../AFib-Treatment-Prediction')
 ##with open ('x.pkl', 'rb') as fp:
 ##    itemlist = pickle.load(fp)
 ######################
-
-#############################
-## Y
-## keys: 'LeadsLabels'
-#############################
-mat_contents = sio.loadmat('../data/LeadsLabels.mat')
