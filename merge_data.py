@@ -1,6 +1,6 @@
 import scipy.io as sio
 import pickle
-
+import numpy as np
 import glob, os
 os.chdir("../data/training")
 
@@ -25,9 +25,10 @@ x = []
 for num in names:
     print(num)
     mat_contents = sio.loadmat('./patient_training' + num + '.mat')
-    mat_contents = mat_contents['ecg']
+    mat_contents = np.array(mat_contents['ecg'])
     x.append(mat_contents)
 
+x = np.array([np.array(xi) for xi in x])
 ## write list of matrices to pickle
 with open('x.pkl', 'wb') as fp:
     pickle.dump(x, fp)
