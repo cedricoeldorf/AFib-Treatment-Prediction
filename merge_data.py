@@ -25,10 +25,12 @@ x = []
 for num in names:
     print(num)
     mat_contents = sio.loadmat('./patient_training' + num + '.mat')
-    mat_contents = np.array(mat_contents['ecg'])
+    mat_contents = mat_contents['ecg']
     x.append(mat_contents)
 
-x = np.array([np.array(xi) for xi in x])
+#x = np.array([np.array(xi) for xi in x])
+#x = [xi for xi in x]
+#x = np.ndarray(x)
 ## write list of matrices to pickle
 with open('x.pkl', 'wb') as fp:
     pickle.dump(x, fp)
