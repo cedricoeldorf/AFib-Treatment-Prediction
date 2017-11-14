@@ -12,7 +12,7 @@ batch_size = 128
 num_classes = 2
 epochs = 2
 
-img_rows, img_cols = 2500, 55
+img_rows, img_cols = 2500, 47
 
 ## Create training and testing set
 #########################
@@ -20,6 +20,15 @@ img_rows, img_cols = 2500, 55
 ## Cross validation
 ## Dimensionality reduction to avoid exhaustion of machine resources
 #########################
+
+# test drop leads some
+##### TRY DROP LEADS IN THIRD DIMENSION
+"""
+X2 = X.copy()
+for i in range(0,len(X)):
+    for j in range(0,len(X[i])):
+        X2[i][j] = np.delete(X[i][j], [1,3,4,5,6,7,10,11])
+"""
 
 x_train = X[0:290]
 x_test = X[290:]
