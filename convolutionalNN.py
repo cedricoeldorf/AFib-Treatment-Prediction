@@ -6,13 +6,13 @@ from keras import backend as K
 from sklearn.decomposition import TruncatedSVD
 from load_data import load_data
 import numpy as np
-X, y = load_data(with_demographics = True,from_source = True)
+X, y = load_data(with_demographics = True,from_source = False, pca_demog = True)
 
-batch_size = 128
+batch_size = 1
 num_classes = 2
-epochs = 2
+epochs = 100
 
-img_rows, img_cols = 2500, 47
+img_rows, img_cols = 2500, 17
 
 ## Create training and testing set
 #########################
@@ -31,6 +31,7 @@ for i in range(0,len(X)):
 """
 
 x_train = X[0:290]
+
 x_test = X[290:]
 y_train = y.RecurrenceWithin1yrTr[0:290]
 y_test = y.RecurrenceWithin1yrTr[290:]
@@ -64,19 +65,19 @@ x_test = pca.transform(X_test)
 ## Construct model
 #############
 model = Sequential()
-model.add(Conv2D(32, kernel_size=(3, 3),
+model.add(Conv2D(16, kernel_size=(3, 3),
                  activation='relu',
                  input_shape=input_shape))
-model.add(Conv2D(64, (3, 3), activation='relu'))
+model.add(Conv2D(8, (3, 3), activation='relu'))
 model.add(MaxPooling2D(pool_size=(2, 2)))
-model.add(Dropout(0.25))
+model.add(Dropout(2))
 model.add(Flatten())
-model.add(Dense(128, activation='relu'))
-model.add(Dropout(0.5))
+model.add(Dense(8, activation='relu'))
+model.add(Dropout(2))
 model.add(Dense(num_classes, activation='softmax'))
 
 model.compile(loss=keras.losses.categorical_crossentropy,
-              optimizer=keras.optimizers.Adadelta(),
+              optimizer=keras.optimizers.Adadelta(lr = 0.000001),
               metrics=['accuracy'])
 
 model.fit(x_train, y_train,
