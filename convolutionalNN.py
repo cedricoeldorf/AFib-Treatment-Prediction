@@ -6,7 +6,7 @@ from keras import backend as K
 from sklearn.decomposition import TruncatedSVD
 from load_data import load_data
 import numpy as np
-X, y = load_data(with_demographics = True,from_source = False, pca_demog = True)
+X, y = load_data(with_demographics = True,from_source = False, stacked = True)
 
 batch_size = 1
 num_classes = 2
@@ -64,6 +64,11 @@ x_test = pca.transform(X_test)
 ############
 ## Construct model
 #############
+## check if first part can be trained using unsupervised set.
+###############################
+# 1. first learn representation
+## get physionet data
+# 2. then supervised learning.
 model = Sequential()
 model.add(Conv2D(16, kernel_size=(3, 3),
                  activation='relu',

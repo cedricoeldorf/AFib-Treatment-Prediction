@@ -3,11 +3,11 @@ import pickle
 import pandas as pd
 from sklearn.decomposition import PCA
 
-def load_data(with_demographics = True, from_source = True, pca_demog = False):
+def load_data(with_demographics = True, from_source = True, stacked = True):
     if (from_source == True) & (with_demographics == True):
         with open ('../data/training/X.pkl', 'rb') as fp:
             X = pickle.load(fp)
-    if (from_source == False) & (with_demographics == True) & (pca_demog == False):
+    if (from_source == False) & (with_demographics == True):
         X = prep_data()
         with open('../data/training/X.pkl', 'wb') as fp:
             pickle.dump(X, fp)
@@ -15,19 +15,19 @@ def load_data(with_demographics = True, from_source = True, pca_demog = False):
         with open ('../data/training/x.pkl', 'rb') as fp:
             X = pickle.load(fp)
             #X = np.delete(X, [76,151,245])
-    if (from_source == False) & (with_demographics == True) & (pca_demog == True):
-        #X = prep_data(pca_demog = True)
-        #with open('../data/training/X_d.pkl', 'wb') as fp:
-            #pickle.dump(X, fp)
-        with open ('../data/training/X_d.pkl', 'rb') as fp:
-            X = pickle.load(fp)
     X = np.array(X)
+    if stacked == True:
+        x = []
+        for i in range(0,len(X)):
+            x.append(np.ravel(X[i]))
+    X = np.array(x)
+
     y = pd.read_excel('../data/training/y.xlsx')
     y = y.drop(y.index[[76,151,245]]).reset_index()
     return X, y
 
 
-def prep_data(pca_demog = False):
+def prep_data():
     with open ('../data/training/x.pkl', 'rb') as fp:
         X = pickle.load(fp)
     demog = pd.read_excel('../data/demographics.xls')
@@ -43,15 +43,13 @@ def prep_data(pca_demog = False):
     ## missing cells, interpolate
     demog = demog.interpolate()
 
-    if pca_demog == True:
-        demog_tr = demog.loc[:290]
-        demog_te = demog.loc[291:]
-        pca = PCA(n_components=5)
-        demog_tr = pca.fit_transform(demog_tr)
-        demog_te = pca.transform(demog_te)
-        demog_tr = pd.DataFrame(demog_tr)
-        demog_te = pd.DataFrame(demog_te)
-        demog = demog_tr.append(demog_te)
+    ## Data needs same variance
+    ## dont apply to demographics, but on ECG.
+    ## PCA affected by feature with largest variance.
+    ## Filter based methods, wrapper based methods
+    ## must work with hybrid data
+    ## feature significance
+    ## lasso, sklearn. sequential forward floating search
 
     demog_matrix = []
     for i in range(0,len(demog)):
@@ -63,3 +61,5 @@ def prep_data(pca_demog = False):
         X[i] = np.hstack((patient,X[i]))
 
     return X
+
+#def SMOTE(X, y):
