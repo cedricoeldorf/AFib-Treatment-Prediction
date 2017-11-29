@@ -21,14 +21,7 @@ img_rows, img_cols = 2500, 17
 ## Dimensionality reduction to avoid exhaustion of machine resources
 #########################
 
-# test drop leads some
-##### TRY DROP LEADS IN THIRD DIMENSION
-"""
-X2 = X.copy()
-for i in range(0,len(X)):
-    for j in range(0,len(X[i])):
-        X2[i][j] = np.delete(X[i][j], [1,3,4,5,6,7,10,11])
-"""
+
 
 x_train = X[0:290]
 

@@ -2,6 +2,7 @@ import numpy as np
 import pickle
 import pandas as pd
 from sklearn.decomposition import PCA
+from imblearn.over_sampling import SMOTE
 
 def load_data(with_demographics = True, from_source = True, stacked = True):
     if (from_source == True) & (with_demographics == True):
@@ -20,10 +21,11 @@ def load_data(with_demographics = True, from_source = True, stacked = True):
         x = []
         for i in range(0,len(X)):
             x.append(np.ravel(X[i]))
-    X = np.array(x)
+    #X = np.array(x)
 
     y = pd.read_excel('../data/training/y.xlsx')
-    y = y.drop(y.index[[76,151,245]]).reset_index()
+    y = y.drop(y.index[[76,151,245]])
+    y.index = range(0,len(y))
     return X, y
 
 
@@ -62,4 +64,7 @@ def prep_data():
 
     return X
 
-#def SMOTE(X, y):
+def smote_os(X, y):
+    sm = SMOTE()
+    X_res, y_res = sm.fit_sample(X, y)
+    return X_res, y_res
