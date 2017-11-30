@@ -1,11 +1,14 @@
 ################
 ## see https://blog.keras.io/building-autoencoders-in-keras.html
 ############
-
+AE = 'vanilla'
 
 from keras.layers import Input, Dense, Lambda, Layer
 from keras.models import Model, Sequential
 from load_data import load_data
+from keras.optimizers import RMSprop, Adam
+from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
+
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -36,7 +39,9 @@ for j in range(0,len(X)):
     for i in range(0,len(X[j])):
         new_list.append(np.delete(X[j][i], [1,3,4,5,6,7,8,9,10,11]))
     large_list.append(new_list)
+
 X = np.asarray(large_list)
+###########################################
 x_train = X[0:600]
 x_test = X[600:]
 y_train = y.iloc[0:600]
@@ -45,35 +50,55 @@ y_train = y_train.astype('float32')
 y_test = y_test.astype('float32')
 y_train = np.asarray(y_train).ravel()
 y_test = np.asarray(y_test).ravel()
-encoding_dim = 64  # from 784 to 32; serious compression
-ae = Sequential()
-
-inputLayer = Dense(1500, input_shape=(1500,))
-ae.add(inputLayer)
-
-middle = Dense(encoding_dim, activation='relu')
-ae.add(middle)
-
-output = Dense(1500, activation='sigmoid')
-ae.add(output)
-
-ae.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 
 
-# x_train is a 28x28 matrix with [0,255] color values
-# this remaps things to the [0,1] range
-x_train = x_train.astype('float32') / np.linalg.norm(x_train)
-x_test = x_test.astype('float32') / np.linalg.norm(x_train)
+if AE == 'vanilla':
+    encoding_dim = 256
+    ae = Sequential()
+    inputLayer = Dense(1500, input_shape=(1500,))
+    ae.add(inputLayer)
+    middle = Dense(encoding_dim, activation='relu')
+    ae.add(middle)
+    middle3 = Dense(64, activation='relu')
+    ae.add(middle3)
+    middle2 = Dense(encoding_dim, activation='relu')
+    ae.add(middle2)
+    output = Dense(1500, activation='tanh')
+    ae.add(output)
 
-# flattening the 28x28 matrix to a vector
-x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+    opt = RMSprop(lr = 0.000001)
+    ae.compile(optimizer=opt, loss='mse')
+    # Normalize
+    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
+    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
+
+    # flatten matrix
+    x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+    x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+
+
+if AE == 'conv':
+    x_train = x_train.reshape(x_train.shape[0],750, 2, 1)
+    x_test = x_test.reshape(x_test.shape[0],750, 2, 1)
+    inputs = Input(shape=(750, 2, 1))
+    h = Conv2D(4, 3, 3, activation='relu', border_mode='same')(inputs)
+    encoded = MaxPooling2D((2, 2))(h)
+    h = Conv2D(4, 3, 3, activation='relu', border_mode='same')(encoded)
+    h = UpSampling2D((2, 2))(h)
+    outputs = Conv2D(1, 3, 3, activation='relu', border_mode='same')(h)
+
+    ae = Model(input=inputs, output=outputs)
+    opt = RMSprop(lr = 0.00001)
+    ae.compile(optimizer=opt, loss='mse')
+    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
+    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
+
 
 start = time.time()
 print("> Training the model...")
 ae.fit(x_train, x_train,
-       nb_epoch=10,
-       batch_size=1,
+       nb_epoch=50,
+       batch_size=2,
        verbose=1,
        shuffle=False,  # whether to shuffle the training data before each epoch
        validation_data=(x_test, x_test))
@@ -83,40 +108,32 @@ print("> Training is done in %.2f seconds." % (time.time() - start))
 # how well does it work?
 print("> Scoring:")
 scoring = ae.evaluate(x_test, x_test, verbose=0)
-for i in range(len(ae.metrics_names)):
-    print("   %s: %.2f%%" % (ae.metrics_names[i], 100 - scoring[i] * 100))
+print(scoring)
 
 x_test_encoded = ae.predict(x_test, batch_size=1)
+
+if AE == 'conv':
+    x_test_encoded = x_test_encoded.reshape(x_test_encoded.shape[0], 750,2)
+
 plt.figure(figsize=(6, 6))
 plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test)
 plt.colorbar()
 plt.ion()
 plt.show()
-"""
-encoding_dim = 32  # 32 floats -> compression of factor 24.5, assuming the input is 784 floats
 
-# this is our input placeholder
-input_img = Input(shape=(750,12))
-# "encoded" is the encoded representation of the input
-encoded = Dense(encoding_dim, activation='relu')(input_img)
-# "decoded" is the lossy reconstruction of the input
-decoded = Dense(64, activation='relu')(encoded)
-
-# this model maps an input to its reconstruction
-autoencoder = Model(input_img, decoded)
-# this model maps an input to its encoded representation
-encoder = Model(input_img, encoded)
-# create a placeholder for an encoded (32-dimensional) input
-encoded_input = Input(shape=(encoding_dim,))
-# retrieve the last layer of the autoencoder model
-decoder_layer = autoencoder.layers[-1]
-# create the decoder model
-decoder = Model(encoded_input, decoder_layer(encoded_input))
-
-autoencoder.compile(optimizer='adadelta', loss='binary_crossentropy')
-autoencoder.fit(x_train, x_train,
-                epochs=50,
-                batch_size=256,
-                shuffle=True,
-                validation_data=(x_test, x_test))
-"""
+##########################################
+## transform original data and combine
+############################
+X = X.astype('float32') / np.linalg.norm(X)
+# flatten matrix
+X = X.reshape((len(X), np.prod(X.shape[1:])))
+X = ae.predict(X, batch_size=1)
+demog = pd.read_excel('../data/demographics.xls')
+demog = demog.drop(['RecurrenceWithin1yr', 'Recurrence_early'], axis = 1)
+demog = demog.drop(demog.index[[76,151,245]]).reset_index()
+## missing cells, interpolate
+demog = demog.interpolate()
+demog = pd.concat([demog]*3)
+demog.index = range(0,len(demog))
+df = pd.DataFrame(X)
+new_training = pd.concat([df, demog], axis=1)
