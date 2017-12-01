@@ -97,7 +97,7 @@ if AE == 'conv':
 start = time.time()
 print("> Training the model...")
 ae.fit(x_train, x_train,
-       nb_epoch=50,
+       nb_epoch=5,
        batch_size=2,
        verbose=1,
        shuffle=False,  # whether to shuffle the training data before each epoch
@@ -138,3 +138,13 @@ demog.index = range(0,len(demog))
 df = pd.DataFrame(X)
 new_training = pd.concat([df, demog], axis=1)
 new_training.to_csv('../trainthis.csv', index = False)
+
+##############################################################
+## lasso
+## stagewise approach
+## xgboost feature importance. lasso has built in sparsity.
+###############################################################
+
+#####################
+## classify, check our xgboost and scikit learn to see performance
+#####################
