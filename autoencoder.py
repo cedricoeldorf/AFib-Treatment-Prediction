@@ -1,7 +1,7 @@
 ################
 ## see https://blog.keras.io/building-autoencoders-in-keras.html
 ############
-AE = 'vanilla'
+
 
 from keras.layers import Input, Dense, Lambda, Layer
 from keras.models import Model, Sequential
@@ -51,48 +51,28 @@ y_test = y_test.astype('float32')
 y_train = np.asarray(y_train).ravel()
 y_test = np.asarray(y_test).ravel()
 
+encoding_dim = 256
+ae = Sequential()
+inputLayer = Dense(1500, input_shape=(1500,))
+ae.add(inputLayer)
+middle = Dense(encoding_dim, activation='relu')
+ae.add(middle)
+middle3 = Dense(64, activation='relu')
+ae.add(middle3)
+middle2 = Dense(encoding_dim, activation='relu')
+ae.add(middle2)
+output = Dense(1500, activation='tanh')
+ae.add(output)
 
-if AE == 'vanilla':
-    encoding_dim = 256
-    ae = Sequential()
-    inputLayer = Dense(1500, input_shape=(1500,))
-    ae.add(inputLayer)
-    middle = Dense(encoding_dim, activation='relu')
-    ae.add(middle)
-    middle3 = Dense(64, activation='relu')
-    ae.add(middle3)
-    middle2 = Dense(encoding_dim, activation='relu')
-    ae.add(middle2)
-    output = Dense(1500, activation='tanh')
-    ae.add(output)
+opt = RMSprop(lr = 0.000001)
+ae.compile(optimizer=opt, loss='mse')
+# Normalize
+x_train = x_train.astype('float32') / np.linalg.norm(x_train)
+x_test = x_test.astype('float32') / np.linalg.norm(x_test)
 
-    opt = RMSprop(lr = 0.000001)
-    ae.compile(optimizer=opt, loss='mse')
-    # Normalize
-    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
-    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
-
-    # flatten matrix
-    x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-    x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
-
-
-if AE == 'conv':
-    x_train = x_train.reshape(x_train.shape[0],750, 2, 1)
-    x_test = x_test.reshape(x_test.shape[0],750, 2, 1)
-    inputs = Input(shape=(750, 2, 1))
-    h = Conv2D(4, 3, 3, activation='relu', border_mode='same')(inputs)
-    encoded = MaxPooling2D((2, 2))(h)
-    h = Conv2D(4, 3, 3, activation='relu', border_mode='same')(encoded)
-    h = UpSampling2D((2, 2))(h)
-    outputs = Conv2D(1, 3, 3, activation='relu', border_mode='same')(h)
-
-    ae = Model(input=inputs, output=outputs)
-    opt = RMSprop(lr = 0.00001)
-    ae.compile(optimizer=opt, loss='mse')
-    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
-    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
-
+# flatten matrix
+x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
 
 start = time.time()
 print("> Training the model...")
@@ -111,9 +91,6 @@ scoring = ae.evaluate(x_test, x_test, verbose=0)
 print(scoring)
 
 x_test_encoded = ae.predict(x_test, batch_size=1)
-
-if AE == 'conv':
-    x_test_encoded = x_test_encoded.reshape(x_test_encoded.shape[0], 750,2)
 
 plt.figure(figsize=(6, 6))
 plt.scatter(x_test_encoded[:, 0], x_test_encoded[:, 1], c=y_test)
@@ -137,8 +114,8 @@ demog = pd.concat([demog]*3)
 demog.index = range(0,len(demog))
 df = pd.DataFrame(X)
 new_training = pd.concat([df, demog], axis=1)
-new_training.to_csv('../trainthis.csv', index = False)
-
+new_training.to_csv('../AE_X.csv', index = False)
+y.to_csv('../AE_y.csv', index = False)
 ##############################################################
 ## lasso
 ## stagewise approach

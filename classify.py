@@ -13,33 +13,20 @@ from keras import metrics
 import pandas as pd
 from sklearn.metrics import r2_score
 from sklearn.linear_model import Lasso
-
+from sklearn.feature_selection import RFECV
 from sklearn.linear_model import ElasticNet
+from xgboost import XGBClassifier
+X = pd.read_csv('../AE_X.csv')
+y = pd.read_csv('../AE_y.csv')
+X = X.values
+y = y.values
+estimator = XGBClassifier()
+selector = RFECV(estimator, step=10, cv=5,scoring='accuracy', verbose = 2)
 
-#reg = linear_model.Lasso(alpha = 0.1)
-
-X, y = load_data(with_demographics = False,from_source = True, stacked = True)
-
-#y = pd.concat([y]*3)
-#y.index = range(0,len(y))
-
-large_list = []
-for x in X:
-    for i in range(0,2250,750):
-        large_list.append(x[i:i+750])
-        #large_list.append(small_list)
-X = np.asarray(large_list)
-
-new_list = []
-large_list = []
-for j in range(0,len(X)):
-    new_list = []
-    for i in range(0,len(X[j])):
-        new_list.append(np.delete(X[j][i], [1,3,4,5,6,7,8,9,10,11]))
-    large_list.append(new_list)
-
-X = np.asarray(large_list)
+selector.fit(X,y)
+print("Optimal number of features : %d" % rfecv.n_features_)
 ###########################################
+"""
 x_train = X[0:600]
 x_test = X[600:]
 y_train = y.iloc[0:600]
@@ -74,3 +61,4 @@ plt.legend(loc='best')
 plt.title("Lasso R^2: %f, Elastic Net R^2: %f"
           % (r2_score_lasso, r2_score_enet))
 plt.show()
+"""
