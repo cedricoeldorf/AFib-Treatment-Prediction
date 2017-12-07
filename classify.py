@@ -3,7 +3,6 @@ from keras.models import Model, Sequential
 from load_data import load_data
 from keras.optimizers import RMSprop, Adam
 #from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
-
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -16,15 +15,44 @@ from sklearn.linear_model import Lasso
 from sklearn.feature_selection import RFECV
 from sklearn.linear_model import ElasticNet
 from xgboost import XGBClassifier
-X = pd.read_csv('../AE_X.csv')
-y = pd.read_csv('../AE_y.csv')
-X = X.values
-y = y.values
-estimator = XGBClassifier()
-selector = RFECV(estimator, step=10, cv=5,scoring='accuracy', verbose = 2)
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+with_rfe = input('Has RFE already been performed? (y/n) ')
 
-selector.fit(X,y)
-print("Optimal number of features : %d" % rfecv.n_features_)
+if with_rfe == 'n':
+    X = pd.read_csv('../AE_X.csv')
+    y = pd.read_csv('../AE_y.csv')
+    X = X.values
+    y = y.values
+    estimator = XGBClassifier()
+    selector = RFECV(estimator, step=10, cv=5,scoring='accuracy', verbose = 2)
+
+    selector.fit(X,y)
+    print("Optimal number of features : %d" % selector.n_features_)
+    X_new = selector.transform(X)
+    X_new = pd.DataFrame(X_new)
+    X_new.to_csv('../RFE_X.csv', index = False)
+    X = X_new.copy()
+else:
+    X = pd.read_csv('../RFE_X.csv')
+    y = pd.read_csv('../AE_y.csv')
+    X = X.values
+    y = y.values
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
+
+model = XGBClassifier()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+predictions = [round(value) for value in y_pred]
+# evaluate predictions
+accuracy = accuracy_score(y_test, predictions)
+print("Accuracy: %.2f%%" % (accuracy * 100.0))
+
+
+
+
 ###########################################
 """
 x_train = X[0:600]
