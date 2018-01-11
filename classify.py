@@ -1,8 +1,4 @@
-from keras.layers import Input, Dense, Lambda, Layer
-from keras.models import Model, Sequential
 from load_data import load_data
-from keras.optimizers import RMSprop, Adam
-#from keras.layers import Input, Dense, Conv2D, MaxPooling2D, UpSampling2D, Flatten, Reshape
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import norm
@@ -12,20 +8,24 @@ from keras import metrics
 import pandas as pd
 from sklearn.metrics import r2_score
 from sklearn.linear_model import Lasso
-from sklearn.feature_selection import RFECV
+from sklearn.feature_selection import RFECV, RFE
 from sklearn.linear_model import ElasticNet
 from xgboost import XGBClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 with_rfe = input('Has RFE already been performed? (y/n) ')
-
+demogr = input("include demographics? (y/n) ")
 if with_rfe == 'n':
-    X = pd.read_csv('../AE_X.csv')
-    y = pd.read_csv('../AE_y.csv')
+    if demogr == 'y':
+        X = pd.read_csv('../AE_X.csv')
+        y = pd.read_csv('../AE_y.csv')
+    else:
+        X = pd.read_csv('../AE_X_no_demogr.csv')
+        y = pd.read_csv('../AE_y_no_demogr.csv')
     X = X.values
     y = y.values
     estimator = XGBClassifier()
-    selector = RFECV(estimator, step=10, cv=5,scoring='accuracy', verbose = 2)
+    selector = RFE(estimator, step=2, verbose = 2)
 
     selector.fit(X,y)
     print("Optimal number of features : %d" % selector.n_features_)
@@ -33,60 +33,59 @@ if with_rfe == 'n':
     X_new = pd.DataFrame(X_new)
     X_new.to_csv('../RFE_X.csv', index = False)
     X = X_new.copy()
+    X = X.values
 else:
     X = pd.read_csv('../RFE_X.csv')
     y = pd.read_csv('../AE_y.csv')
     X = X.values
     y = y.values
 
+#################################
+## Cross validation leave k out approach for exhaustive testing
+#################################
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.33)
+#i = 329
+accuracies = []
+for b in range(0,927,3):
+    print("###########################################")
+    print("###########################################")
+    print("Model " + str(b) + " out of 927: " + str((b/927)*100) + "%")
 
-model = XGBClassifier()
-model.fit(X_train, y_train)
-y_pred = model.predict(X_test)
-predictions = [round(value) for value in y_pred]
-# evaluate predictions
-accuracy = accuracy_score(y_test, predictions)
-print("Accuracy: %.2f%%" % (accuracy * 100.0))
+    X_test = X[b:b+60]
+    X_train = np.delete(X, [i for i in range(b,b+60)],axis=0)
+
+    y_test = y[b:b+60]
+    y_train = np.delete(y, [i for i in range(b,b+60)],axis=0)
+    y_test = y_test.ravel()
+    y_train = y_train.ravel()
+
+    model = XGBClassifier()
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+    predictions = [round(value) for value in y_pred]
+    # evaluate predictions
+    accuracy = accuracy_score(y_test, predictions)
+    print("Accuracy: %.2f%%" % (accuracy * 100.0))
+    print("###########################################")
+    print("###########################################")
+    accuracies.append(accuracy)
 
 
+from sklearn.metrics import roc_curve, auc
+probs = model.predict_proba(X_test)
+preds = probs[:,1]
+fpr, tpr, threshold = roc_curve(y_test, preds)
+roc_auc = auc(fpr, tpr)
 
-
-###########################################
-"""
-x_train = X[0:600]
-x_test = X[600:]
-y_train = y.iloc[0:600]
-y_test = y.iloc[600:]
-y_train = y_train.astype('float32')
-y_test = y_test.astype('float32')
-y_train = np.asarray(y_train).ravel()
-y_test = np.asarray(y_test).ravel()
-
-lasso = Lasso(alpha=0.1)
-
-y_pred_lasso = lasso.fit(x_train, y_train).predict(x_test)
-r2_score_lasso = r2_score(y_test, y_pred_lasso)
-print(lasso)
-print("r^2 on test data : %f" % r2_score_lasso)
-
-#elastic net
-
-enet = ElasticNet(alpha=alpha, l1_ratio=0.7)
-
-y_pred_enet = enet.fit(x_train, y_train).predict(x_test)
-r2_score_enet = r2_score(y_test, y_pred_enet)
-print(enet)
-print("r^2 on test data : %f" % r2_score_enet)
-
-plt.plot(enet.coef_, color='lightgreen', linewidth=2,
-         label='Elastic net coefficients')
-plt.plot(lasso.coef_, color='gold', linewidth=2,
-         label='Lasso coefficients')
-plt.plot(coef, '--', color='navy', label='original coefficients')
-plt.legend(loc='best')
-plt.title("Lasso R^2: %f, Elastic Net R^2: %f"
-          % (r2_score_lasso, r2_score_enet))
+# method I: plt
+import matplotlib.pyplot as plt
+plt.title('Receiver Operating Characteristic')
+plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+plt.legend(loc = 'lower right')
+plt.plot([0, 1], [0, 1],'r--')
+plt.xlim([0, 1])
+plt.ylim([0, 1])
+plt.ylabel('True Positive Rate')
+plt.xlabel('False Positive Rate')
+plt.ion()
 plt.show()
-"""
