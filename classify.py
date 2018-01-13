@@ -19,6 +19,7 @@ if with_rfe == 'n':
     if demogr == 'y':
         X = pd.read_csv('../AE_X.csv')
         y = pd.read_csv('../AE_y.csv')
+        columns = X.columns
     else:
         X = pd.read_csv('../AE_X_no_demogr.csv')
         y = pd.read_csv('../AE_y_no_demogr.csv')
@@ -31,11 +32,21 @@ if with_rfe == 'n':
     print("Optimal number of features : %d" % selector.n_features_)
     X_new = selector.transform(X)
     X_new = pd.DataFrame(X_new)
-    X_new.to_csv('../RFE_X.csv', index = False)
+    if demogr == 'y':
+        X_new.to_csv('../RFE_X.csv', index = False)
+    else:
+        X_new.to_csv('../RFE_X_nodemog.csv', index = False)
+
     X = X_new.copy()
     X = X.values
 else:
-    X = pd.read_csv('../RFE_X.csv')
+    if demogr == 'y':
+        X = pd.read_csv('../RFE_X.csv')
+
+    else:
+        X = pd.read_csv('../RFE_X_nodemog.csv')
+
+    #X = pd.read_csv('../RFE_X.csv')
     y = pd.read_csv('../AE_y.csv')
     X = X.values
     y = y.values

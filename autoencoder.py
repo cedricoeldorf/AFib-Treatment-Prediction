@@ -15,7 +15,7 @@ import time
 from keras import backend as K
 from keras import metrics
 import pandas as pd
-
+from keras.models import load_model
 ######
 # Call load data script
 X, y = load_data(with_demographics = False,from_source = True, stacked = False)
@@ -55,44 +55,54 @@ y_test = y_test.astype('float32')
 y_train = np.asarray(y_train).ravel()
 y_test = np.asarray(y_test).ravel()
 
-encoding_dim = 256
-ae = Sequential()
-inputLayer = Dense(1500, input_shape=(1500,),kernel_initializer='random_normal')
-ae.add(inputLayer)
-middle = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
-ae.add(middle)
-middle3 = Dense(256, activation='relu')
-ae.add(middle3)
-middle2 = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
-ae.add(middle2)
-output = Dense(1500, activation='tanh',kernel_initializer='random_normal')
-ae.add(output)
+ae_exist = input("Does AE exist?")
+if ae_exist == 'y':
+    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
+    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
 
-opt = Adam(lr = 0.0000001)
-ae.compile(optimizer=opt, loss='mse')
-# Normalize
-x_train = x_train.astype('float32') / np.linalg.norm(x_train)
-x_test = x_test.astype('float32') / np.linalg.norm(x_test)
+    # flatten matrix
+    x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+    x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+    ae = load_model('../autoencoder.h5')
+else:
+    encoding_dim = 256
+    ae = Sequential()
+    inputLayer = Dense(1500, input_shape=(1500,),kernel_initializer='random_normal')
+    ae.add(inputLayer)
+    middle = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
+    ae.add(middle)
+    middle3 = Dense(256, activation='relu')
+    ae.add(middle3)
+    middle2 = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
+    ae.add(middle2)
+    output = Dense(1500, activation='tanh',kernel_initializer='random_normal')
+    ae.add(output)
 
-# flatten matrix
-x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
-x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
+    opt = Adam(lr = 0.0000001)
+    ae.compile(optimizer=opt, loss='mse')
+    # Normalize
+    x_train = x_train.astype('float32') / np.linalg.norm(x_train)
+    x_test = x_test.astype('float32') / np.linalg.norm(x_test)
 
-start = time.time()
-print("> Training the model...")
-history = ae.fit(x_train, x_train,
-       nb_epoch=500,
-       batch_size=2,
-       verbose=1,
-       shuffle=False,  # whether to shuffle the training data before each epoch
-       validation_data=(x_test, x_test))
+    # flatten matrix
+    x_train = x_train.reshape((len(x_train), np.prod(x_train.shape[1:])))
+    x_test = x_test.reshape((len(x_test), np.prod(x_test.shape[1:])))
 
-print("> Training is done in %.2f seconds." % (time.time() - start))
+    start = time.time()
+    print("> Training the model...")
+    history = ae.fit(x_train, x_train,
+           nb_epoch=300,
+           batch_size=2,
+           verbose=1,
+           shuffle=False,  # whether to shuffle the training data before each epoch
+           validation_data=(x_test, x_test))
 
-# how well does it work?
-print("> Scoring:")
-scoring = ae.evaluate(x_test, x_test, verbose=0)
-print(scoring)
+    print("> Training is done in %.2f seconds." % (time.time() - start))
+    ae.save('../autoencoder.h5')
+    # how well does it work?
+    print("> Scoring:")
+    scoring = ae.evaluate(x_test, x_test, verbose=0)
+    print(scoring)
 
 x_test_encoded = ae.predict(x_test, batch_size=1)
 """
@@ -113,8 +123,9 @@ if demogr == 'y':
     X = X.reshape((len(X), np.prod(X.shape[1:])))
     X = ae.predict(X, batch_size=1)
     demog = pd.read_excel('../data/demographics.xls')
-    demog = demog.drop(['RecurrenceWithin1yr', 'Recurrence_early'], axis = 1)
+    demog = demog.drop(['RecurrenceWithin1yr', 'Recurrence_early','Total_AF_dur','AF_episode'], axis = 1)
     demog = demog.drop(demog.index[[76,151,245]]).reset_index()
+    demog = demog.drop(['index'], axis = 1)
     ## missing cells, interpolate
     demog = demog.interpolate()
     demog = pd.concat([demog]*3)
@@ -136,6 +147,7 @@ else:
 ## stagewise approach
 ## xgboost feature importance. lasso has built in sparsity.
 ###############################################################
+"""
 print(history.history.keys())
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
@@ -145,7 +157,7 @@ plt.xlabel('epoch')
 plt.legend(['train', 'validation'], loc='upper left')
 plt.ion()
 plt.show()
-
+"""
 #####################
 ## classify, check our xgboost and scikit learn to see performance
 #####################
