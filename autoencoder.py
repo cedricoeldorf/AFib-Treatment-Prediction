@@ -22,6 +22,7 @@ X, y = load_data(with_demographics = False,from_source = True, stacked = False)
 
 # duplicate the y observatoins in place so that they match X
 y = pd.concat([y]*3)
+y = y.sort_index()
 y.index = range(0,len(y))
 
 #################################
@@ -129,6 +130,7 @@ if demogr == 'y':
     ## missing cells, interpolate
     demog = demog.interpolate()
     demog = pd.concat([demog]*3)
+    demog = demog.sort_index()
     demog.index = range(0,len(demog))
     df = pd.DataFrame(X)
     new_training = pd.concat([df, demog], axis=1)
