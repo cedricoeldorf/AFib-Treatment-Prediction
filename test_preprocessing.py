@@ -9,7 +9,7 @@
 ## 4. Save RFE models and apply appropriate one (dependig on dataset chosen above)
 
 from keras.models import load_model
-
+import pickle
 
 
 AE = load_model('../autoencoder.h5')

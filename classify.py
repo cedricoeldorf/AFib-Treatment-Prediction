@@ -15,6 +15,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 with_rfe = input('Has RFE already been performed? (y/n) ')
 demogr = input("include demographics? (y/n) ")
+
 if with_rfe == 'n':
     if demogr == 'y':
         X = pd.read_csv('../AE_X.csv')

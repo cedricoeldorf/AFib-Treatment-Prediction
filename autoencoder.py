@@ -72,8 +72,8 @@ else:
     ae.add(inputLayer)
     middle = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
     ae.add(middle)
-    middle3 = Dense(256, activation='relu')
-    ae.add(middle3)
+    #middle3 = Dense(256, activation='relu')
+    #ae.add(middle3)
     middle2 = Dense(encoding_dim, activation='relu',kernel_initializer='random_normal')
     ae.add(middle2)
     output = Dense(1500, activation='tanh',kernel_initializer='random_normal')
@@ -92,7 +92,7 @@ else:
     start = time.time()
     print("> Training the model...")
     history = ae.fit(x_train, x_train,
-           nb_epoch=300,
+           nb_epoch=2,
            batch_size=2,
            verbose=1,
            shuffle=False,  # whether to shuffle the training data before each epoch
