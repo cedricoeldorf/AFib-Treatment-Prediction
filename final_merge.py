@@ -29,28 +29,36 @@ set_train = input("which set would you like to train on? (ext, demog, ae, all)?"
 
 use_own = input("use own data?(y/n) ")
 if use_own == 'y':
-    X = pd.read_csv('../rfe_latest200_50tree.csv')
+    X = pd.read_csv('../rfe_100_window.csv')
+
     X = X.values
     y = pd.read_csv('../AE_y.csv')
     y = y.values
     params = {
         # Parameters that we are going to tune.
-        'max_depth': 4,
+        'max_depth': 6,
         'min_child_weight': 1,
         'subsample': 0.5,
-        'colsample_bytree': 0.9,
+        'colsample_bytree': 0.5,
         'n_estimators': 500,
         'learning_rate':0.1,
         # Other parameters
         'objective':'binary:logistic',
     }
+    """
+    estimator = XGBClassifier(**params)
+    selector = RFE(estimator, step=1,verbose = 2)
 
-    #estimator = XGBClassifier(**params)
-    #selector = RFE(estimator, step=1,verbose = 2)
+    selector.fit(X,y)
+    print("Optimal number of features : %d" % selector.n_features_)
+    X = selector.transform(X)
+    mask = selector.get_support() #list of booleans
+    new_features = [] # The list of your K best features
 
-    #selector.fit(X,y)
-    #print("Optimal number of features : %d" % selector.n_features_)
-    #X = selector.transform(X)
+    for bool, feature in zip(mask, feature_names):
+        if bool:
+            new_features.append(feature)
+    """
 else:
     if set_train == 'ext':
         traditional = pd.read_excel('../data/Merged features.xlsx')
@@ -151,12 +159,12 @@ else:
             traditional = pd.concat([traditional]*3)
             traditional = traditional.sort_index()
             traditional.index = range(0,len(traditional))
-            traditional = traditional.drop(['Dominant frequency','k(0.95)'], axis = 1)
+            #traditional = traditional.drop(['Dominant frequency','k(0.95)'], axis = 1)
         if win == 'y':
-                traditional = pd.read_excel('../data/Features_windowed.xlsx')
+            traditional = pd.read_excel('../data/Features_windowed.xlsx')
 
-                #traditional = traditional.drop(['index'], axis = 1)
-                #traditional = traditional.drop(traditional.index[[76,151,245]]).reset_index()
+            #traditional = traditional.drop(['index'], axis = 1)
+            #traditional = traditional.drop(traditional.index[[76,151,245]]).reset_index()
         X = pd.concat([X,traditional, demog], axis = 1)
         feature_names = X.columns
         y = pd.read_csv('../AE_y.csv')
@@ -183,7 +191,7 @@ else:
 
 
         estimator = XGBClassifier(**params)
-        selector = RFE(estimator, step=50,n_features_to_select = 50, verbose = 2)
+        selector = RFE(estimator, step=2,n_features_to_select = 100, verbose = 2)
 
         selector.fit(X,y)
         print("Optimal number of features : %d" % selector.n_features_)
@@ -194,18 +202,18 @@ else:
         for bool, feature in zip(mask, feature_names):
             if bool:
                 new_features.append(feature)
-        pickle.dump(selector, open('../RFE.pkl', 'wb'))
+        pickle.dump(selector, open('../RFE_50_nowindow.pkl', 'wb'))
 ####################################
 ## XGB parameters (if doing hyperparameter search, put for example max_depth: [7,8,9] for searchable parameters)
 
 if hps == 'y':
     params = {
         # Parameters that we are going to tune.
-        'max_depth': [3,4,5,6,7,8],
+        'max_depth': [4,5,6,7,8],
         'min_child_weight': [1],
         'subsample':[0.5,0.6,0.7,0.8,0.9,1],
         'colsample_bytree': [0.5,0.6,0.7,0.8,0.9,1],
-        'n_estimators': [200,300,500],
+        'n_estimators': [500,700],
         'learning_rate':[0.01,0.05,0.08,0.1],
         'max_delta_step':[0],
 
@@ -316,12 +324,12 @@ else:
             #     coef0=0.0, shrinking=True, probability=True,
             #     tol=1e-3, cache_size=200, class_weight=None,
             #     verbose=False, max_iter=-1, decision_function_shape='ovr',random_state=None)
-            model = linear_model.LogisticRegression(C=1e5)
+            #model = linear_model.LogisticRegression(C=1e5)
 
-            #model = XGBClassifier(**params)
+            model = XGBClassifier(**params)
             model.fit(X_train, y_train)
-            y_pred = model.predict_proba(X_test)
-            #predictions = [round(value) for value in y_pred]
+            y_pred = model.predict(X_test)
+            predictions = [round(value) for value in y_pred]
             predictions = y_pred
             patient_number = []
             for i in range(0,int(len(predictions)/3)):
